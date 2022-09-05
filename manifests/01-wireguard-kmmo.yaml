@@ -1,0 +1,61 @@
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: wireguard-kmod-driver-container
+  name: wireguard-kmod-driver-container
+  namespace: tigera-wireguard-kmod
+spec: {}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: wireguard-kmod-driver-build
+  name: wireguard-kmod-driver-build
+  namespace: tigera-wireguard-kmod
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  runPolicy: "Serial"
+  triggers:
+    - type: "ConfigChange"
+    - type: "ImageChange"
+  source:
+    git:
+      ref: "master"
+      uri: "https://github.com/tigera/kvc-wireguard-kmod.git"
+    type: Git
+    dockerfile: |
+      FROM quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:0661d0560654e7e2d1761e883ffdd6c482c8c8f37e60608bb59c44fa81a3f0bb
+
+      ARG KMODVER
+      ARG ARTIFACTS_LOCATION
+      ARG WIREGUARD_ARCHIVE_URL
+      ARG WIREGUARD_ARCHIVE_SHA256
+
+      
+      WORKDIR /
+      RUN echo "Downloading ${WIREGUARD_ARCHIVE_URL} (${WIREGUARD_ARCHIVE_SHA256})" && \
+        curl -LS https://git.zx2c4.com/wireguard-linux-compat/snapshot/wireguard-linux-compat-1.0.20210606.tar.xz |                 \
+        { t="$(mktemp)"; trap "rm -f '$t'" INT TERM EXIT; cat >| "$t"; sha256sum --quiet -c <<<"3f5d990006e6eabfd692d925ec314fff2c5ee7dcdb869a6510d579acfdd84ec0 $t" \
+        || exit 1; cat "$t"; } | tar xJf -
+
+      # TODO CERT INSTALL STEP
+      RUN make -C wireguard-linux-compat-1.0.20210606/src -j$(nproc) KERNELRELEASE=$(uname -r) \
+      && make -C wireguard-linux-compat-1.0.20210606/src install KERNELRELEASE=$(uname -r)
+
+      RUN lsmod
+      RUN systemctl enable kmods-via-containers@wireguard
+  strategy:
+    dockerStrategy:
+      buildArgs:
+        - name: KMODVER
+          value: "1.0.20210606"
+        - name: ARTIFACTS_LOCATION
+          value: "https://seth-wireguard-ocp-kr-pub.s3.us-west-2.amazonaws.com"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: wireguard-kmod-driver-container:latest
