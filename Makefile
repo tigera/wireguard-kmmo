@@ -1,20 +1,23 @@
-.PHONY: all
+.PHONY: all manifests/01-helpers.yaml
 
-all: certs
+all: manifests/01-helpers.yaml setup
 
-generate-certs:
-	make -C certs
-certs: generate-certs
-	kubectl create secret generic signing-artifacts \
-	-n tigera-wireguard-kmod 						\
+
+# converts ./helpers dir to configmap that will be embedded in BuildConfig
+manifests/01-helpers.yaml:
+	kubectl create configmap wireguard-kmod-helpers \
 	--dry-run=client 								\
-	--from-file=./certs/signing-key.pem 			\
-	--from-file=./certs/signing-key.der 			\
-	-o yaml > manifests/01-certs.yaml
+	-n tigera-wireguard-kmod 						\
+	--from-file=./helpers 							\
+	-o yaml > $@
 
-install:
+setup:
 	oc apply -f ./manifests
 
+install:
+	oc apply -f ./1000-driver-container.yaml
+
 clean:
+	-oc delete -f ./1000-driver-container.yaml
 	-oc delete -f ./manifests
 

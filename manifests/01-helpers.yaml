@@ -1,0 +1,83 @@
+apiVersion: v1
+data:
+  wireguard-kmod-load.sh: |
+    #!/bin/bash
+
+    source "/etc/wireguard/wireguard-kmod.conf"
+
+    is_kmod_loaded() {
+        module=${1//-/_} # replace any dashes with underscore
+        if lsmod | grep "${module}" &>/dev/null; then
+            return 0
+        else
+            return 1
+        fi
+    }
+
+    echo "Loading kernel modules using the kernel module container..."
+    echo "${0} ${1} ${2}"
+    for module in ${KMOD_NAMES}; do
+        echo "INFO: Loading kernel module: ${module}"
+        if is_kmod_loaded ${module}; then
+            echo "INFO: Kernel module ${module} already loaded"
+        else
+            module=${module//-/_} # replace any dashes with underscore
+            modprobe ${module} && echo "SUCCESS: Kernel module ${module} loaded ok"
+        fi
+    done
+  wireguard-kmod-reload.sh: |-
+    #!/bin/bash
+
+    source "/etc/wireguard/wireguard-kmod.conf"
+
+    echo "Reloading kernel module"
+    echo "${0} ${1} ${2}"
+    /usr/bin/bash -c "/etc/kvc/wireguard-kmod-unload.sh" && \
+    /usr/bin/bash -c "/etc/kvc/wireguard-kmod-load.sh"
+  wireguard-kmod-unload.sh: |-
+    #!/bin/bash
+
+    source "/etc/wireguard/wireguard-kmod.conf"
+
+    echo "Unloading kernel modules..."
+    echo "${0} ${1} ${2}"
+    for module in ${KMOD_NAMES}; do
+        if is_kmod_loaded ${module}; then
+            module=${module//-/_} # replace any dashes with underscore
+            rmmod "${module}" && echo "SUCCESS: Kernel module ${module} unloaded ok"
+        else
+            echo "INFO: Kernel module ${module} already unloaded"
+        fi
+    done
+  wireguard-kmod.conf: |
+    KMOD_NAMES="udp_tunnel ip6_udp_tunnel wireguard"
+  wireguard.service: |
+    [Unit]
+    Description=Wireguard KMMO - %i
+    # Start after the network is up
+    Wants=network-online.target
+    After=network-online.target
+    # Also after docker.service (no effect on systems without docker)
+    After=docker.service
+    # Before kubelet.service (no effect on systems without kubernetes)
+    Before=kubelet.service
+    # But before users are allowed to login
+    Before=systemd-user-sessions.service
+
+    [Service]
+    Type=oneshot
+    TimeoutStartSec=25m
+    RemainAfterExit=true
+    # Use bash to workaround https://github.com/coreos/rpm-ostree/issues/1936
+    ExecStart=/usr/bin/bash -c "/etc/wireguard/wireguard-kmod-load.sh %i %v"
+    ExecReload=/usr/bin/bash -c "/etc/wireguard/wireguard-kmod-reload.sh %i %v"
+    ExecStop=/usr/bin/bash -c "/etc/wireguard/wireguard-kmod-unload.sh %i %v"
+    StandardOutput=journal+console
+
+    [Install]
+    WantedBy=default.target
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: wireguard-kmod-helpers
+  namespace: tigera-wireguard-kmod

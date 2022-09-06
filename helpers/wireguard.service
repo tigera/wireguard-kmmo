@@ -1,0 +1,24 @@
+[Unit]
+Description=Wireguard KMMO - %v
+# Start after the network is up
+Wants=network-online.target
+After=network-online.target
+# Also after docker.service (no effect on systems without docker)
+After=docker.service
+# Before kubelet.service (no effect on systems without kubernetes)
+Before=kubelet.service
+# But before users are allowed to login
+Before=systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=25m
+RemainAfterExit=true
+# Use bash to workaround https://github.com/coreos/rpm-ostree/issues/1936
+ExecStart=/usr/bin/bash -c "/etc/wireguard/wireguard-kmod-load.sh %v"
+ExecReload=/usr/bin/bash -c "/etc/wireguard/wireguard-kmod-reload.sh %v"
+ExecStop=/usr/bin/bash -c "/etc/wireguard/wireguard-kmod-unload.sh %v"
+StandardOutput=journal+console
+
+[Install]
+WantedBy=default.target
