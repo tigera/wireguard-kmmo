@@ -29,7 +29,6 @@ spec:
     dockerfile: |
       FROM quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:0661d0560654e7e2d1761e883ffdd6c482c8c8f37e60608bb59c44fa81a3f0bb
 
-      ARG KMODVER
       ARG ARTIFACTS_LOCATION
       ARG WIREGUARD_ARCHIVE_NAME
       ARG WIREGUARD_ARCHIVE_SHA256
@@ -61,8 +60,6 @@ spec:
   strategy:
     dockerStrategy:
       buildArgs:
-        - name: KMODVER
-          value: "1.0.20210606"
         - name: WIREGUARD_ARCHIVE_NAME
           value: "wireguard-linux-compat-1.0.20210606"
         - name: WIREGUARD_ARCHIVE_SHA256
