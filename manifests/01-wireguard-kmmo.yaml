@@ -68,7 +68,7 @@ spec:
         - name: WIREGUARD_ARCHIVE_SHA256
           value: "3f5d990006e6eabfd692d925ec314fff2c5ee7dcdb869a6510d579acfdd84ec0"
         - name: ARTIFACTS_LOCATION
-          value: "https://seth-wireguard-ocp-kr-pub.s3.us-west-2.amazonaws.com"
+          value: "https://git.zx2c4.com/wireguard-linux-compat/snapshot"
   output:
     to:
       kind: ImageStreamTag

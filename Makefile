@@ -1,7 +1,4 @@
-.PHONY: all manifests/01-helpers.yaml
-
-all: manifests/01-helpers.yaml setup
-
+.PHONY: manifests/01-helpers.yaml
 
 # converts ./helpers dir to configmap that will be embedded in BuildConfig
 manifests/01-helpers.yaml:
@@ -11,13 +8,16 @@ manifests/01-helpers.yaml:
 	--from-file=./helpers 							\
 	-o yaml > $@
 
-setup:
+# applies and triggers the imagestream build
+builder:
 	oc apply -f ./manifests
 
+# target to run when imagestream succeeds
 install:
 	oc apply -f ./1000-driver-container.yaml
 
-clean:
+# cleanup / uninstall
+remove:
 	-oc delete -f ./1000-driver-container.yaml
 	-oc delete -f ./manifests
 
