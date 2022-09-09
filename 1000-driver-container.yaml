@@ -45,13 +45,15 @@ spec:
       app: tigera-wireguard-kmod-driver-container
   template:
     metadata:
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: '*'
       labels:
         app: tigera-wireguard-kmod-driver-container
     spec:
       serviceAccount: tigera-wireguard-kmod-driver-container
       serviceAccountName: tigera-wireguard-kmod-driver-container
       containers:
-      - image: image-registry.openshift-image-registry.svc:5000/tigera-wireguard-kmod/wireguard-kmod-driver-container:latest
+      - image: wireguard-kmod-driver-container:latest
         name: tigera-wireguard-kmod-driver-container
         imagePullPolicy: Always
         command: ["/sbin/init"]

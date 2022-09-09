@@ -2,11 +2,15 @@
 apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
+  annotations:
+    openshift.io/display-name: wireguard-kmod-driver-container
   labels:
     app: wireguard-kmod-driver-container
   name: wireguard-kmod-driver-container
   namespace: tigera-wireguard-kmod
-spec: {}
+spec:
+  lookupPolicy:
+    local: true
 ---
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
