@@ -32,7 +32,7 @@ subjects:
 - kind: ServiceAccount
   name: tigera-wireguard-kmod-driver-container
 userNames:
-- system:serviceaccount:tigera-wireguard-kmod-demo:tigera-wireguard-kmod-driver-container
+- system:serviceaccount:tigera-wireguard-kmod:tigera-wireguard-kmod-driver-container
 ---
 apiVersion: apps/v1
 kind: DaemonSet
