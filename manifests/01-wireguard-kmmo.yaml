@@ -31,7 +31,7 @@ spec:
     - configMap:
         name: wireguard-kmod-helpers
     dockerfile: |
-      FROM quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:0661d0560654e7e2d1761e883ffdd6c482c8c8f37e60608bb59c44fa81a3f0bb
+      FROM quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:397bdb1550d3d620376760449a14147266e87a5486a85e1381b10052daa0b392
 
       ARG ARTIFACTS_LOCATION
       ARG WIREGUARD_ARCHIVE_NAME
@@ -39,7 +39,7 @@ spec:
 
 
       WORKDIR /
-      RUN cat /etc/systemd/system/kmod*
+      #RUN cat /etc/systemd/system/kmod*
       RUN echo "Downloading ${ARTIFACTS_LOCATION}/${WIREGUARD_ARCHIVE_NAME}.tar.xz (${WIREGUARD_ARCHIVE_SHA256})" &&            \
         curl -LS ${ARTIFACTS_LOCATION}/${WIREGUARD_ARCHIVE_NAME}.tar.xz |                                                       \
         { t="$(mktemp)"; trap "rm -f '$t'" INT TERM EXIT; cat >| "$t"; sha256sum --quiet -c <<<"${WIREGUARD_ARCHIVE_SHA256} $t" \
@@ -65,9 +65,9 @@ spec:
     dockerStrategy:
       buildArgs:
         - name: WIREGUARD_ARCHIVE_NAME
-          value: "wireguard-linux-compat-1.0.20210606"
+          value: "wireguard-linux-compat-1.0.20220627"
         - name: WIREGUARD_ARCHIVE_SHA256
-          value: "3f5d990006e6eabfd692d925ec314fff2c5ee7dcdb869a6510d579acfdd84ec0"
+          value: "362d412693c8fe82de00283435818d5c5def7f15e2433a07a9fe99d0518f63c0"
         - name: ARTIFACTS_LOCATION
           value: "https://git.zx2c4.com/wireguard-linux-compat/snapshot"
   output:

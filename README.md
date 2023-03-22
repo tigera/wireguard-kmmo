@@ -4,24 +4,49 @@ NOTE: TECH PREVIEW. This is still a work in progress and in testing.
 
 Wireguard Kernel Module installed and managed via KMMO / Driver Toolkit. Read more about Driver toolkit [here](https://access.redhat.com/documentation/en-us/openshift_container_platform/4.10/html/specialized_hardware_and_driver_enablement/driver-toolkit#doc-wrapper).
 
-
 ## Prerequisites
 
-1. You have a running OpenShift Container Platform cluster (version 4.10.x).
+1. You have a running OpenShift Container Platform cluster (version 4.11.x).
 1. You set the Image Registry Operator state to `Managed` for your cluster. ([Read more](https://docs.openshift.com/container-platform/4.8/registry/configuring-registry-operator.html))
+
+    ```bash
+    # check image registry operator state. Should be set to Managed
+    oc get configs.imageregistry.operator.openshift.io/cluster -ojsonpath='{.spec.managementState}'
+    ```
+
 1. You installed the OpenShift CLI (`oc`).
 1. You are logged into the OpenShift CLI as a user with `cluster-admin` privileges. 
-
 
 ## Quick start
 
 1. Clone this repo
 1. (Optional) Edit manifests` 01-wireguard-kmmo.yaml` `BuildConfig` `buildArgs` section so it matches your cluster setup 
+
+    2.1. Update `driver-toolkit` image in the `dockerfile` section of the `BuildConfig` resource. You can use the code below to find the correct image for your OCP cluster version.
+
+    ```bash
+    OCP_VER=4.11.30
+    oc adm release info $OCP_VER --image-for=driver-toolkit
+    ```
+
+    2.2. Update `WIREGUARD_ARCHIVE_NAME` and `WIREGUARD_ARCHIVE_SHA256` values in the `strategy.dockerStrategy.buildArgs` section of the `BuildConfig` resource if you want to use another version of Wireguard. 
+
+    You can view available Wireguard versions at [https://git.zx2c4.com/wireguard-linux-compat](https://git.zx2c4.com/wireguard-linux-compat). 
+
+    - Copy the package name without the extension `.tar.xz` and use it for the `WIREGUARD_ARCHIVE_NAME` value.  
+    - Then download the package locally and use `sha256sum` utility to get the SHA256 for it and use it for the `WIREGUARD_ARCHIVE_SHA256` value.
+
+        ```bash
+        # example
+        sha256sum ~/Downloads/wireguard-linux-compat-1.0.20210606.tar.xz
+
+        3f5d990006e6eabfd692d925ec314fff2c5ee7dcdb869a6510d579acfdd84ec0  /tmp/wireguard-linux-compat-1.0.20210606.tar.xz
+        ```
+
 1. (Optional) Re-generate `manifests/01-helpers.yaml` by running `make manifests/01-helpers.yaml`. Do this if you have modified any of the files under `helpers`.
 1. `make builder` will create your `Namespace`, `BuildConfig`, `ConfigMap` artifacts on your Openshift Cluster. Wait until your imagestream build is available (Run `oc get -f ./manifests -w` to monitor build status)
 1. `make install` will create and start a daemonset driver container that will enable wireguard while it is up. It will also unload wireguard kmods if it's brought down.
 1. `make remove` uninstalls everything
-
 
 ## Configuration
 
@@ -33,19 +58,18 @@ Wireguard Kernel Module installed and managed via KMMO / Driver Toolkit. Read mo
       buildArgs:
         # find your desired version / archive name here https://git.zx2c4.com/wireguard-linux-compat/
         - name: WIREGUARD_ARCHIVE_NAME
-          value: "wireguard-linux-compat-1.0.20210606"
+          value: "wireguard-linux-compat-1.0.20220627"
         # sha256sum value of the archive selected
         - name: WIREGUARD_ARCHIVE_SHA256
-          value: "3f5d990006e6eabfd692d925ec314fff2c5ee7dcdb869a6510d579acfdd84ec0"
+          value: "362d412693c8fe82de00283435818d5c5def7f15e2433a07a9fe99d0518f63c0"
         # if you wish to mirror the archive (e.g. for airgapped setups), use the below variable to set the location to download from e.g. http://localhost.run/blobs will result in http://localhost.run/blobs/wireguard-linux-compat-1.0.20211208.tar.xz
         - name: ARTIFACTS_LOCATION
           value: "https://git.zx2c4.com/wireguard-linux-compat/snapshot"
 ```
 
-
 ### Example output
 
-```
+```text
 ➜  oc get -n tigera-wireguard-kmod all
 NAME                                               READY   STATUS      RESTARTS   AGE
 pod/tigera-wireguard-kmod-driver-container-5wv4m   1/1     Running     0          51m   # <-- ds pod
@@ -66,8 +90,7 @@ NAME                                                             IMAGE REPOSITOR
 imagestream.image.openshift.io/wireguard-kmod-driver-container   image-registry.openshift-image-registry.svc:5000/tigera-wireguard-kmod/wireguard-kmod-driver-container   latest   51 minutes ago
 ```
 
-
-```
+```text
 ➜  wireguard-kmmo git:(master) ✗ oc exec -it -n tigera-wireguard-kmod pod/tigera-wireguard-kmod-driver-container-5wv4m -- bash
 [root@tigera-wireguard-kmod-driver-container-5wv4m wireguard]# journalctl --unit=wireguard.service
 -- Logs begin at Tue 2022-09-06 15:48:26 UTC, end at Tue 2022-09-06 16:03:28 UTC. --
