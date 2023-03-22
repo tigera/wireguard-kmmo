@@ -67,6 +67,44 @@ Wireguard Kernel Module installed and managed via KMMO / Driver Toolkit. Read mo
           value: "https://git.zx2c4.com/wireguard-linux-compat/snapshot"
 ```
 
+### Configure FelixConfiguration resource for each control plane node
+
+Wireguard encryption should not be enabled for the OCP control plane nodes (a.k.a. master nodes). Configure control plane node specific `FelixConfiguration` resources to disable Wireguard encryption for those nodes.
+
+```bash
+# example config
+cat <<EOF | oc apply -f-
+apiVersion: projectcalico.org/v3
+kind: FelixConfiguration
+metadata:
+  name: node.<NODE_NAME>
+spec:
+  logSeverityScreen: Info
+  reportingInterval: 0s
+  wireguardEnabled: false
+  wireguardEnabledV6: false
+EOF
+```
+
+An example script to configure the `FelixConfiguration` resource for each control plane node.
+
+```bash
+MASTER_NAMES=($(kubectl get nodes -l node-role.kubernetes.io/master= -ojsonpath='{.items[*].metadata.name}'))
+for name in ${MASTER_NAMES[@]};do
+  cat <<EOF | oc apply -f-
+  apiVersion: projectcalico.org/v3
+  kind: FelixConfiguration
+  metadata:
+    name: node.$name
+  spec:
+    logSeverityScreen: Info
+    reportingInterval: 0s
+    wireguardEnabled: false
+    wireguardEnabledV6: false
+EOF
+done
+```
+
 ### Example output
 
 ```text
