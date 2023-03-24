@@ -39,7 +39,6 @@ spec:
 
 
       WORKDIR /
-      #RUN cat /etc/systemd/system/kmod*
       RUN echo "Downloading ${ARTIFACTS_LOCATION}/${WIREGUARD_ARCHIVE_NAME}.tar.xz (${WIREGUARD_ARCHIVE_SHA256})" &&            \
         curl -LS ${ARTIFACTS_LOCATION}/${WIREGUARD_ARCHIVE_NAME}.tar.xz |                                                       \
         { t="$(mktemp)"; trap "rm -f '$t'" INT TERM EXIT; cat >| "$t"; sha256sum --quiet -c <<<"${WIREGUARD_ARCHIVE_SHA256} $t" \
